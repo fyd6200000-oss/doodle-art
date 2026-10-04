@@ -1,0 +1,493 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#16120f" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<title>涂鸦成画 · 随手一画，变成名作</title>
+<meta name="description" content="随手涂鸦，一键变成油画、水彩、水墨、梵高、浮世绘等风格的艺术画作" />
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎨</text></svg>" />
+<style>
+  :root{
+    --bg:#16120f; --bg2:#1e1915; --card:rgba(255,248,235,.045); --line:rgba(255,236,200,.12);
+    --text:#f3ece2; --muted:#a99c8c; --gold:#e8b86d; --gold2:#f6d7a0; --accent:#d9643a;
+    --radius:18px; --serif:"Songti SC","Noto Serif SC","Source Han Serif SC","STSong",Georgia,serif;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;}
+  body{min-height:100vh;background:
+    radial-gradient(1200px 600px at 85% -10%,rgba(217,100,58,.18),transparent 60%),
+    radial-gradient(900px 500px at -10% 20%,rgba(232,184,109,.12),transparent 60%),
+    radial-gradient(800px 600px at 50% 110%,rgba(90,120,200,.10),transparent 60%),var(--bg);}
+  button,input,textarea{font:inherit;color:inherit}
+  button{cursor:pointer}
+  .wrap{max-width:1240px;margin:0 auto;padding:22px 18px 60px}
+  header{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin:6px 0 22px}
+  .brand h1{font-family:var(--serif);font-weight:700;font-size:clamp(30px,5vw,46px);letter-spacing:.06em;margin:0;line-height:1.05;
+    background:linear-gradient(100deg,var(--gold2),var(--gold) 40%,#f0a070 75%,var(--gold2));-webkit-background-clip:text;background-clip:text;color:transparent}
+  .brand p{margin:8px 0 0;color:var(--muted);font-size:14px;letter-spacing:.08em}
+  .brand small{font-family:Georgia,serif;font-style:italic;color:#7d7266;font-size:13px;margin-left:8px;letter-spacing:.02em}
+  .grid{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,.95fr);gap:22px;align-items:start}
+  @media (max-width:900px){.grid{grid-template-columns:1fr}.wrap{padding:14px 12px 50px}header{margin-bottom:14px}}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:16px;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);box-shadow:0 20px 60px rgba(0,0,0,.25)}
+  .card h2{font-family:var(--serif);font-size:17px;font-weight:600;margin:0 0 12px;display:flex;align-items:center;gap:8px;letter-spacing:.06em}
+  .card h2 .n{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:50%;background:linear-gradient(135deg,var(--gold),var(--accent));color:#1a120b;font-size:12px;font-family:system-ui;font-weight:700}
+  .card h2 .hint{margin-left:auto;font-family:system-ui;font-size:12px;color:var(--muted);font-weight:400;letter-spacing:0}
+
+  /* 画板 */
+  .board{position:relative;border-radius:14px;overflow:hidden;background:#fff;box-shadow:0 0 0 1px rgba(0,0,0,.3),0 14px 40px rgba(0,0,0,.35);aspect-ratio:1/1}
+  .board canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none;cursor:crosshair;display:block}
+  .board .empty{position:absolute;inset:0;display:grid;place-items:center;pointer-events:none;color:#c9bfb2;font-family:var(--serif);font-size:clamp(16px,2.6vw,20px);letter-spacing:.12em;text-align:center;transition:opacity .3s}
+  .board .empty span{display:block;font-size:13px;letter-spacing:.04em;margin-top:8px;font-family:system-ui;color:#d4cbbf}
+  .tools{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:12px}
+  .tbtn{height:38px;min-width:38px;padding:0 11px;border-radius:11px;border:1px solid var(--line);background:rgba(255,255,255,.04);display:inline-flex;align-items:center;justify-content:center;gap:6px;font-size:13px;transition:.15s}
+  .tbtn:hover{background:rgba(255,255,255,.09)}
+  .tbtn.on{background:linear-gradient(135deg,rgba(232,184,109,.28),rgba(217,100,58,.25));border-color:rgba(232,184,109,.6)}
+  .tbtn:disabled{opacity:.35;cursor:default}
+  .tbtn svg{width:18px;height:18px}
+  .sep{width:1px;height:24px;background:var(--line);margin:0 2px}
+  .colors{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:10px}
+  .sw{width:28px;height:28px;border-radius:50%;border:2px solid rgba(255,255,255,.15);padding:0;transition:transform .12s}
+  .sw.on{transform:scale(1.15);border-color:var(--gold2);box-shadow:0 0 0 3px rgba(232,184,109,.25)}
+  .sw.custom{position:relative;overflow:hidden;background:conic-gradient(red,yellow,lime,cyan,blue,magenta,red)}
+  .sw.custom input{position:absolute;inset:-8px;opacity:0;cursor:pointer}
+  .size{display:flex;align-items:center;gap:10px;flex:1;min-width:150px}
+  .size input{flex:1;accent-color:var(--gold)}
+  .dot{width:30px;height:30px;display:grid;place-items:center}
+  .dot i{display:block;border-radius:50%;background:var(--text)}
+
+  /* 风格 */
+  .styles{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+  @media (max-width:520px){.styles{grid-template-columns:repeat(3,1fr)}}
+  .st{position:relative;border:1px solid var(--line);border-radius:13px;overflow:hidden;background:#000;aspect-ratio:1/0.82;padding:0;text-align:left;transition:.18s}
+  .st .bgx{position:absolute;inset:0;transition:transform .4s}
+  .st:hover .bgx{transform:scale(1.07)}
+  .st .lb{position:absolute;left:0;right:0;bottom:0;padding:18px 8px 7px;background:linear-gradient(transparent,rgba(0,0,0,.72));font-size:13px;font-weight:600;letter-spacing:.04em;text-shadow:0 1px 2px rgba(0,0,0,.6)}
+  .st .lb em{display:block;font-style:italic;font-weight:400;font-size:10px;opacity:.75;font-family:Georgia,serif;letter-spacing:0}
+  .st.on{border-color:var(--gold2);box-shadow:0 0 0 2px var(--gold),0 8px 24px rgba(232,184,109,.25)}
+  .st.on::after{content:"✓";position:absolute;top:6px;right:6px;width:20px;height:20px;border-radius:50%;background:var(--gold);color:#1a120b;font-size:12px;font-weight:800;display:grid;place-items:center}
+
+  .field{margin-top:14px}
+  .field label{display:block;font-size:13px;color:var(--muted);margin-bottom:7px}
+  .field textarea,.field input[type=text],.field input[type=password]{width:100%;border-radius:12px;border:1px solid var(--line);background:rgba(0,0,0,.25);padding:11px 12px;resize:none;outline:none;font-size:15px;transition:border .15s}
+  .field textarea:focus,.field input:focus{border-color:rgba(232,184,109,.6)}
+  .seg{display:flex;background:rgba(0,0,0,.25);border:1px solid var(--line);border-radius:12px;padding:3px}
+  .seg button{flex:1;border:0;background:transparent;padding:8px 6px;border-radius:9px;font-size:13px;color:var(--muted)}
+  .seg button.on{background:rgba(232,184,109,.2);color:var(--gold2)}
+  .go{margin-top:16px;width:100%;height:56px;border:0;border-radius:15px;font-size:18px;font-weight:700;letter-spacing:.2em;color:#1d130a;font-family:var(--serif);
+    background:linear-gradient(100deg,#f6d7a0,#e8b86d 35%,#e0844f 80%,#f2b27c);background-size:200% 100%;box-shadow:0 12px 30px rgba(224,132,79,.3);transition:background-position .6s,transform .1s}
+  .go:hover{background-position:100% 0}.go:active{transform:scale(.985)}
+  .go:disabled{filter:grayscale(.6) brightness(.7);cursor:wait}
+
+  /* 结果 */
+  .result{margin-top:22px}
+  .stage{position:relative;border-radius:14px;overflow:hidden;background:#0d0b09;aspect-ratio:1/1;display:grid;place-items:center;box-shadow:inset 0 0 0 1px var(--line)}
+  .stage img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;user-select:none;-webkit-user-drag:none}
+  .stage .orig{background:#fff}
+  .placeholder{color:#6f655a;text-align:center;font-family:var(--serif);letter-spacing:.1em;padding:20px;font-size:15px;line-height:1.9}
+  .placeholder b{display:block;font-size:42px;margin-bottom:6px}
+  .loading{position:absolute;inset:0;display:none;place-items:center;text-align:center;background:
+    linear-gradient(120deg,rgba(232,184,109,.08),rgba(217,100,58,.12),rgba(90,120,200,.10),rgba(232,184,109,.08));background-size:300% 300%;animation:flow 4s ease infinite}
+  .loading.show{display:grid}
+  @keyframes flow{0%{background-position:0 50%}50%{background-position:100% 50%}100%{background-position:0 50%}}
+  .brush{width:64px;height:64px;margin:0 auto 14px;border-radius:50%;border:3px solid rgba(232,184,109,.2);border-top-color:var(--gold);animation:spin 1s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .loading .msg{font-family:var(--serif);font-size:17px;letter-spacing:.12em;color:var(--gold2)}
+  .loading .sec{font-size:12px;color:var(--muted);margin-top:6px}
+  .cmp{position:absolute;top:0;bottom:0;width:2px;background:#fff;box-shadow:0 0 12px rgba(0,0,0,.6);pointer-events:none;display:none}
+  .cmp::after{content:"⟷";position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:34px;height:34px;border-radius:50%;background:#fff;color:#222;display:grid;place-items:center;font-size:16px;box-shadow:0 2px 10px rgba(0,0,0,.4)}
+  .tag{position:absolute;top:10px;padding:4px 9px;border-radius:20px;font-size:11px;background:rgba(0,0,0,.55);color:#fff;display:none;letter-spacing:.06em}
+  .stage.comparing .cmp,.stage.comparing .tag{display:block}
+  .actions{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+  .actions .tbtn{flex:1;min-width:90px}
+  .err{margin-top:12px;padding:10px 12px;border-radius:11px;background:rgba(217,70,58,.14);border:1px solid rgba(217,70,58,.35);color:#ffb4a6;font-size:13px;display:none}
+  .meta{margin-top:10px;font-size:12px;color:var(--muted);text-align:center;min-height:16px}
+  .history{display:flex;gap:8px;overflow-x:auto;margin-top:12px;padding-bottom:4px}
+  .history img{width:64px;height:64px;border-radius:10px;object-fit:cover;border:2px solid transparent;cursor:pointer;flex:none}
+  .history img.on{border-color:var(--gold)}
+
+  /* 灯箱 */
+  .lightbox{position:fixed;inset:0;background:rgba(8,6,5,.94);z-index:50;display:none;overflow:auto;-webkit-overflow-scrolling:touch}
+  .lightbox.show{display:block}
+  .lightbox img{display:block;max-width:100vw;max-height:100vh;margin:auto;position:absolute;inset:0;object-fit:contain;cursor:zoom-in;touch-action:pinch-zoom}
+  .lightbox.zoom img{position:static;max-width:none;max-height:none;width:200vmin;cursor:zoom-out}
+  .lightbox .x{position:fixed;top:max(14px,env(safe-area-inset-top));right:14px;width:44px;height:44px;border-radius:50%;border:0;background:rgba(255,255,255,.14);font-size:22px;z-index:2}
+  .lightbox .tip{position:fixed;bottom:max(16px,env(safe-area-inset-bottom));left:0;right:0;text-align:center;color:#bbb;font-size:12px;z-index:2;pointer-events:none}
+  footer{margin-top:30px;text-align:center;color:#6f655a;font-size:12px;letter-spacing:.05em}
+  .toast{position:fixed;left:50%;bottom:30px;transform:translateX(-50%) translateY(20px);background:rgba(30,25,21,.95);border:1px solid var(--line);padding:10px 16px;border-radius:12px;font-size:14px;opacity:0;transition:.25s;z-index:60;pointer-events:none}
+  .toast.show{opacity:1;transform:translateX(-50%)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand">
+      <h1>涂鸦成画</h1>
+      <p>随手一画，让 AI 把它变成名作<small>Doodle → Masterpiece</small></p>
+    </div>
+  </header>
+
+  <div class="grid">
+    <!-- 左：画板 -->
+    <section class="card">
+      <h2><span class="n">1</span>随手画一画<span class="hint">也可以上传手绘照片</span></h2>
+      <div class="board" id="board">
+        <canvas id="cv" width="1024" height="1024"></canvas>
+        <div class="empty" id="empty">在这里随便画点什么<span>房子、小猫、一棵树…画得丑也没关系</span></div>
+      </div>
+      <div class="tools">
+        <button class="tbtn on" id="tPen" title="画笔"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>画笔</button>
+        <button class="tbtn" id="tEraser" title="橡皮"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m7 21-4.3-4.3a1 1 0 0 1 0-1.4l10-10a1 1 0 0 1 1.4 0l5.6 5.6a1 1 0 0 1 0 1.4L11 21"/><path d="M22 21H7"/><path d="m5 11 9 9"/></svg>橡皮</button>
+        <span class="sep"></span>
+        <button class="tbtn" id="tUndo" title="撤销" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg></button>
+        <button class="tbtn" id="tRedo" title="重做" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 14 5-5-5-5"/><path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13"/></svg></button>
+        <button class="tbtn" id="tClear" title="清空"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>清空</button>
+        <span class="sep"></span>
+        <button class="tbtn" id="tUpload" title="上传手绘照片"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.1-3.1a2 2 0 0 0-2.8 0L6 21"/></svg>上传</button>
+        <button class="tbtn" id="tSample" title="来个示例">✨ 示例</button>
+        <input type="file" id="file" accept="image/*" hidden />
+      </div>
+      <div class="tools">
+        <div class="colors" id="colors" style="margin-top:0"></div>
+        <div class="size"><span class="dot"><i id="dotI"></i></span><input type="range" id="size" min="2" max="60" value="8" /></div>
+      </div>
+    </section>
+
+    <!-- 右：风格 + 生成 + 结果 -->
+    <section class="card" id="right">
+      <h2><span class="n">2</span>选一种画风<span class="hint" id="styleName">古典油画</span></h2>
+      <div class="styles" id="styles"></div>
+
+      <div class="field">
+        <label>想补充一句吗？（选填，比如「黄昏下的海边小屋，有只猫」）</label>
+        <textarea id="desc" rows="2" maxlength="200" placeholder="描述画面、氛围或颜色，AI 会更懂你"></textarea>
+      </div>
+      <div class="field">
+        <label>忠于原稿程度</label>
+        <div class="seg" id="fid">
+          <button data-v="strict">贴近原稿</button>
+          <button data-v="balanced" class="on">适度润色</button>
+          <button data-v="free">大胆发挥</button>
+        </div>
+      </div>
+      <div class="field" id="codeField" style="display:none">
+        <label>访问口令</label>
+        <input type="password" id="code" placeholder="请输入口令" />
+      </div>
+      <button class="go" id="go">✦ 生 成 画 作 ✦</button>
+
+      <div class="result">
+        <h2 style="font-family:var(--serif);font-size:17px;margin:0 0 12px;display:flex;align-items:center;gap:8px;letter-spacing:.06em"><span class="n" style="display:inline-grid;place-items:center;width:22px;height:22px;border-radius:50%;background:linear-gradient(135deg,var(--gold),var(--accent));color:#1a120b;font-size:12px;font-family:system-ui;font-weight:700">3</span>你的画作</h2>
+        <div class="stage" id="stage">
+          <div class="placeholder" id="ph"><b>🖼️</b>画好后点「生成画作」<br>大约 10–30 秒出图</div>
+          <img id="outImg" alt="" style="display:none" />
+          <img id="origImg" class="orig" alt="" style="display:none" />
+          <div class="cmp" id="cmpBar"></div>
+          <span class="tag" style="left:10px">原稿</span><span class="tag" style="right:10px">画作</span>
+          <div class="loading" id="loading"><div><div class="brush"></div><div class="msg" id="lmsg">正在调色…</div><div class="sec" id="lsec">0 秒</div></div></div>
+        </div>
+        <div class="actions" id="actions" style="display:none">
+          <button class="tbtn" id="aCmp">⟷ 对比原稿</button>
+          <button class="tbtn" id="aZoom">⤢ 放大</button>
+          <button class="tbtn" id="aDl">⤓ 下载</button>
+          <button class="tbtn" id="aAgain">↻ 再来一张</button>
+        </div>
+        <div class="err" id="err"></div>
+        <div class="meta" id="meta"></div>
+        <div class="history" id="history"></div>
+      </div>
+    </section>
+  </div>
+  <footer>涂鸦成画 · AI 生成内容仅供娱乐 · 请勿上传他人隐私照片</footer>
+</div>
+
+<div class="lightbox" id="lb"><button class="x" id="lbX">✕</button><img id="lbImg" alt="" /><div class="tip">点图片放大 / 缩小 · 手机长按图片可保存</div></div>
+<div class="toast" id="toast"></div>
+
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const cv = $('cv'), ctx = cv.getContext('2d');
+  const W = cv.width, H = cv.height;
+
+  // ---------- 风格 ----------
+  const STYLES = [
+    ['oil','古典油画','Oil Painting','radial-gradient(circle at 30% 30%,#e9c46a,#9c4a1a 55%,#2b1608)'],
+    ['watercolor','水彩','Watercolor','radial-gradient(circle at 25% 30%,#9ad1f5 0 22%,transparent 40%),radial-gradient(circle at 70% 65%,#f7a8c4 0 20%,transparent 42%),radial-gradient(circle at 60% 25%,#fde68a 0 15%,transparent 35%),#fbf7ef'],
+    ['ink','国画水墨','Chinese Ink','linear-gradient(160deg,transparent 45%,rgba(0,0,0,.75) 46%,rgba(0,0,0,.25) 65%,transparent 66%),radial-gradient(circle at 75% 25%,#c0392b 0 6%,transparent 7%),linear-gradient(#f3ead8,#e3d6bd)'],
+    ['vangogh','梵高星夜','Van Gogh','radial-gradient(circle at 72% 28%,#ffe066 0 10%,#f2c14e 12%,transparent 22%),repeating-radial-gradient(circle at 35% 45%,#1d3f8f 0 6px,#3a6fd8 6px 11px,#132a63 11px 16px)'],
+    ['ukiyoe','浮世绘','Ukiyo-e','radial-gradient(ellipse at 50% 120%,#f6efe0 0 30%,transparent 31%),repeating-radial-gradient(ellipse at 50% 120%,#1f4e8c 0 9px,#f6efe0 9px 11px,#2f6db5 11px 20px),#e8dcc3'],
+    ['cyberpunk','赛博朋克','Cyberpunk','linear-gradient(transparent 60%,rgba(0,255,240,.35) 61%,transparent 63%),linear-gradient(135deg,#120428,#5b0f8a 50%,#ff2fa0 85%,#00f0ff)'],
+    ['cartoon3d','3D 卡通','3D Cartoon','radial-gradient(circle at 35% 35%,#fff 0 6%,#ffb347 7% 30%,#ff7a59 45%,transparent 46%),linear-gradient(#7ad0ff,#b8f1d0)'],
+    ['ghibli','吉卜力动画','Ghibli','radial-gradient(ellipse at 30% 30%,#fff 0 12%,transparent 25%),linear-gradient(transparent 58%,#5fae4e 59%,#3e8a3a),linear-gradient(#5db7ec,#bfe6f7)'],
+    ['monet','莫奈印象派','Monet','radial-gradient(circle at 20% 70%,#a7d7a0 0 10%,transparent 18%),radial-gradient(circle at 70% 60%,#f4b6c2 0 9%,transparent 16%),radial-gradient(circle at 45% 30%,#cde3f5 0 20%,transparent 35%),linear-gradient(#b9d6e8,#9cc5a8)'],
+    ['dunhuang','敦煌壁画','Dunhuang Mural','radial-gradient(circle at 50% 40%,#e9c46a 0 12%,transparent 13%),radial-gradient(circle at 50% 40%,transparent 0 20%,#b5462b 21% 24%,transparent 25%),linear-gradient(135deg,#2a7f75,#c9a46b 55%,#8b3a2a)'],
+    ['popart','波普艺术','Pop Art','radial-gradient(circle,#e63946 30%,transparent 32%) 0 0/10px 10px,linear-gradient(135deg,#ffd60a,#ffd60a 50%,#00b4d8 50%)'],
+    ['stainedglass','彩色玻璃','Stained Glass','conic-gradient(from 20deg at 50% 50%,#c1121f,#1d4ed8,#facc15,#15803d,#7e22ce,#ea580c,#0e7490,#c1121f)'],
+  ];
+  let style = 'oil';
+  const stylesEl = $('styles');
+  STYLES.forEach(([k, zh, en, bg]) => {
+    const b = document.createElement('button');
+    b.className = 'st' + (k === style ? ' on' : '');
+    b.innerHTML = `<div class="bgx" style="background:${bg}"></div><div class="lb">${zh}<em>${en}</em></div>`;
+    b.onclick = () => { style = k; [...stylesEl.children].forEach((c) => c.classList.remove('on')); b.classList.add('on'); $('styleName').textContent = zh; };
+    stylesEl.appendChild(b);
+  });
+  let fidelity = 'balanced';
+  $('fid').querySelectorAll('button').forEach((b) => b.onclick = () => {
+    fidelity = b.dataset.v; $('fid').querySelectorAll('button').forEach((x) => x.classList.toggle('on', x === b));
+  });
+
+  // ---------- 画板 ----------
+  const COLORS = ['#1b1b1b','#7a7a7a','#e63946','#f77f00','#fcbf49','#2a9d8f','#52b788','#277da1','#3a0ca3','#b5179e','#ff8fab','#8d5524'];
+  let color = COLORS[0], size = 8, erasing = false;
+  const colorsEl = $('colors');
+  COLORS.forEach((c, i) => {
+    const b = document.createElement('button');
+    b.className = 'sw' + (i === 0 ? ' on' : ''); b.style.background = c; b.title = c;
+    b.onclick = () => pickColor(c, b);
+    colorsEl.appendChild(b);
+  });
+  const custom = document.createElement('label');
+  custom.className = 'sw custom'; custom.title = '自选颜色';
+  custom.innerHTML = '<input type="color" value="#1b1b1b">';
+  custom.querySelector('input').oninput = (e) => pickColor(e.target.value, custom);
+  colorsEl.appendChild(custom);
+  function pickColor(c, el) {
+    color = c; setTool(false);
+    colorsEl.querySelectorAll('.sw').forEach((x) => x.classList.toggle('on', x === el)); updDot();
+  }
+  function setTool(er) { erasing = er; $('tPen').classList.toggle('on', !er); $('tEraser').classList.toggle('on', er); updDot(); }
+  $('tPen').onclick = () => setTool(false);
+  $('tEraser').onclick = () => setTool(true);
+  $('size').oninput = (e) => { size = +e.target.value; updDot(); };
+  function updDot() {
+    const d = Math.max(3, Math.min(30, size * 0.5 * (erasing ? 1.6 : 1)));
+    const i = $('dotI'); i.style.width = i.style.height = d + 'px';
+    i.style.background = erasing ? '#fff' : color; i.style.outline = erasing ? '1px dashed #999' : 'none';
+  }
+  updDot();
+
+  // 操作历史：每一项是一笔、一张图或一次清空，撤销时整体重绘
+  let ops = [], redo = [], cur = null;
+  function paintBg() { ctx.globalCompositeOperation = 'source-over'; ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, W, H); }
+  function drawStroke(s) {
+    const p = s.pts; if (!p.length) return;
+    ctx.strokeStyle = ctx.fillStyle = s.c; ctx.lineWidth = s.w; ctx.lineCap = ctx.lineJoin = 'round';
+    if (p.length === 1) { ctx.beginPath(); ctx.arc(p[0][0], p[0][1], s.w / 2, 0, Math.PI * 2); ctx.fill(); return; }
+    ctx.beginPath(); ctx.moveTo(p[0][0], p[0][1]);
+    for (let i = 1; i < p.length - 1; i++) {
+      const mx = (p[i][0] + p[i + 1][0]) / 2, my = (p[i][1] + p[i + 1][1]) / 2;
+      ctx.quadraticCurveTo(p[i][0], p[i][1], mx, my);
+    }
+    const l = p[p.length - 1]; ctx.lineTo(l[0], l[1]); ctx.stroke();
+  }
+  function drawImg(o) { ctx.drawImage(o.img, o.x, o.y, o.w, o.h); }
+  function redraw() {
+    paintBg();
+    let start = 0;
+    for (let i = ops.length - 1; i >= 0; i--) if (ops[i].t === 'clear') { start = i + 1; break; }
+    for (let i = start; i < ops.length; i++) { const o = ops[i]; if (o.t === 's') drawStroke(o); else if (o.t === 'img') drawImg(o); }
+    refreshUi();
+  }
+  function isBlank() {
+    for (let i = ops.length - 1; i >= 0; i--) { if (ops[i].t === 'clear') return true; if (ops[i].t !== 'clear') return false; }
+    return true;
+  }
+  function refreshUi() {
+    $('tUndo').disabled = !ops.length; $('tRedo').disabled = !redo.length;
+    $('empty').style.opacity = isBlank() && !cur ? 1 : 0;
+  }
+  function pos(e) { const r = cv.getBoundingClientRect(); return [(e.clientX - r.left) * W / r.width, (e.clientY - r.top) * H / r.height]; }
+  cv.addEventListener('pointerdown', (e) => {
+    if (e.button > 0) return;
+    e.preventDefault(); cv.setPointerCapture(e.pointerId);
+    const scale = W / cv.getBoundingClientRect().width;
+    cur = { t: 's', c: erasing ? '#ffffff' : color, w: size * (erasing ? 2.2 : 1) * Math.max(1, scale * 0.6), pts: [pos(e)] };
+    $('empty').style.opacity = 0;
+    drawStroke(cur);
+  });
+  cv.addEventListener('pointermove', (e) => {
+    if (!cur) return;
+    const evs = e.getCoalescedEvents ? e.getCoalescedEvents() : [e];
+    for (const ev of (evs.length ? evs : [e])) {
+      const p = pos(ev), l = cur.pts[cur.pts.length - 1];
+      if (Math.hypot(p[0] - l[0], p[1] - l[1]) > 1.5) cur.pts.push(p);
+    }
+    // 只重画最后一小段，长笔画也不卡
+    const p = cur.pts, n = p.length; if (n < 3) { drawStroke(cur); return; }
+    ctx.strokeStyle = cur.c; ctx.lineWidth = cur.w; ctx.lineCap = ctx.lineJoin = 'round';
+    const a = p[n - 3], b = p[n - 2], c = p[n - 1];
+    ctx.beginPath(); ctx.moveTo((a[0] + b[0]) / 2, (a[1] + b[1]) / 2); ctx.quadraticCurveTo(b[0], b[1], (b[0] + c[0]) / 2, (b[1] + c[1]) / 2); ctx.stroke();
+  });
+  const end = () => { if (!cur) return; ops.push(cur); redo = []; cur = null; redraw(); };
+  cv.addEventListener('pointerup', end); cv.addEventListener('pointercancel', end); cv.addEventListener('lostpointercapture', end);
+
+  $('tUndo').onclick = () => { if (ops.length) { redo.push(ops.pop()); redraw(); } };
+  $('tRedo').onclick = () => { if (redo.length) { ops.push(redo.pop()); redraw(); } };
+  $('tClear').onclick = () => { if (!isBlank()) { ops.push({ t: 'clear' }); redo = []; redraw(); } };
+  document.addEventListener('keydown', (e) => {
+    if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'z' && !/TEXTAREA|INPUT/.test(document.activeElement.tagName)) {
+      e.preventDefault(); (e.shiftKey ? $('tRedo') : $('tUndo')).click();
+    }
+  });
+
+  // 上传手绘照片：等比放进画板
+  $('tUpload').onclick = () => $('file').click();
+  $('file').onchange = (e) => {
+    const f = e.target.files[0]; if (!f) return;
+    const url = URL.createObjectURL(f), img = new Image();
+    img.onload = () => {
+      const s = Math.min(W / img.width, H / img.height), w = img.width * s, h = img.height * s;
+      ops.push({ t: 'clear' }, { t: 'img', img, x: (W - w) / 2, y: (H - h) / 2, w, h }); redo = []; redraw();
+      toast('照片已放进画板，可以继续在上面画');
+    };
+    img.onerror = () => toast('这张图片打不开，换一张试试');
+    img.src = url; e.target.value = '';
+  };
+
+  // 示例涂鸦：一座小屋、太阳、树、远山
+  $('tSample').onclick = () => {
+    const S = (c, w, pts) => ({ t: 's', c, w, pts });
+    const circle = (cx, cy, r, n = 40) => Array.from({ length: n + 1 }, (_, i) => [cx + r * Math.cos(i / n * 6.283), cy + r * Math.sin(i / n * 6.283)]);
+    const wob = (pts) => pts.map(([x, y], i) => [x + Math.sin(i * 1.7) * 3, y + Math.cos(i * 2.3) * 3]);
+    const line = (a, b, n = 12) => Array.from({ length: n + 1 }, (_, i) => [a[0] + (b[0] - a[0]) * i / n, a[1] + (b[1] - a[1]) * i / n]);
+    const sample = [
+      S('#277da1', 7, wob([[0, 600], [140, 470], [260, 560], [420, 420], [600, 580], [760, 470], [1024, 610]])),
+      S('#fcbf49', 10, wob(circle(800, 190, 80))),
+      ...[0, 1, 2, 3, 4, 5, 6, 7].map((k) => S('#f77f00', 7, line([800 + 115 * Math.cos(k * .785), 190 + 115 * Math.sin(k * .785)], [800 + 165 * Math.cos(k * .785), 190 + 165 * Math.sin(k * .785)], 4))),
+      S('#1b1b1b', 9, wob([...line([260, 860], [260, 640]), ...line([260, 640], [580, 640]), ...line([580, 640], [580, 860])])),
+      S('#e63946', 9, wob([...line([220, 650], [420, 500]), ...line([420, 500], [620, 650])])),
+      S('#8d5524', 9, wob([...line([380, 860], [380, 740]), ...line([380, 740], [460, 740]), ...line([460, 740], [460, 860])])),
+      S('#277da1', 7, wob([...line([300, 690], [350, 690], 4), ...line([350, 690], [350, 730], 4), ...line([350, 730], [300, 730], 4), ...line([300, 730], [300, 690], 4)])),
+      S('#8d5524', 12, wob(line([800, 880], [800, 700]))),
+      S('#2a9d8f', 10, wob(circle(800, 620, 95))),
+      S('#52b788', 7, wob([[0, 900], [200, 880], [500, 905], [760, 885], [1024, 900]])),
+      S('#1b1b1b', 6, wob([...line([140, 300], [180, 270], 4), ...line([180, 270], [220, 300], 4)])),
+      S('#1b1b1b', 6, wob([...line([260, 240], [290, 215], 4), ...line([290, 215], [320, 240], 4)])),
+    ];
+    ops.push({ t: 'clear' }, ...sample); redo = []; redraw();
+    if (!$('desc').value) $('desc').value = '山脚下的小木屋，旁边有一棵大树，太阳和飞鸟';
+    toast('示例画好了，选个画风点「生成」试试');
+  };
+
+  // ---------- 生成 ----------
+  const MSGS = ['正在研磨颜料…', '铺第一层底色…', '构图与光影…', '一笔一笔勾细节…', '为画作上光油…', '马上就好…'];
+  let timer = null, results = [], current = -1, lastSketch = null;
+
+  function sketchData() {
+    // 压到 768px 的 JPEG，又小又够用
+    const c = document.createElement('canvas'); c.width = c.height = 768;
+    c.getContext('2d').drawImage(cv, 0, 0, 768, 768);
+    return c.toDataURL('image/jpeg', 0.9);
+  }
+  async function generate() {
+    if (isBlank()) { toast('先在画板上画点什么，或点「示例」'); return; }
+    const code = $('code').value.trim();
+    const sketch = sketchData();
+    lastSketch = sketch;
+    $('err').style.display = 'none'; $('go').disabled = true; $('go').textContent = '创作中…';
+    $('ph').style.display = 'none'; $('loading').classList.add('show');
+    const t0 = Date.now(); let k = 0;
+    $('lmsg').textContent = MSGS[0];
+    timer = setInterval(() => {
+      const s = Math.floor((Date.now() - t0) / 1000);
+      $('lsec').textContent = s + ' 秒'; if (s && s % 4 === 0) $('lmsg').textContent = MSGS[Math.min(++k, MSGS.length - 1)];
+    }, 1000);
+    if (window.innerWidth < 900) $('stage').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    try {
+      const r = await fetch('/api/generate', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ image: sketch, style, fidelity, prompt: $('desc').value.trim(), code }),
+      });
+      const j = await r.json().catch(() => ({ error: '服务器开小差了（' + r.status + '）' }));
+      if (!r.ok || !j.image) {
+        if (j.needCode) { $('codeField').style.display = ''; }
+        throw new Error(j.error || '生成失败');
+      }
+      if (code) localStorage.setItem('doodle_code', code);
+      results.unshift({ img: j.image, sketch, style: j.style, secs: Math.round((Date.now() - t0) / 1000) });
+      if (results.length > 12) results.pop();
+      show(0);
+    } catch (e) {
+      $('err').textContent = e.message; $('err').style.display = 'block';
+      if (current < 0) $('ph').style.display = '';
+    } finally {
+      clearInterval(timer); $('loading').classList.remove('show');
+      $('go').disabled = false; $('go').textContent = '✦ 生 成 画 作 ✦';
+    }
+  }
+  function show(i) {
+    current = i; const r = results[i];
+    $('outImg').src = r.img; $('outImg').style.display = '';
+    $('origImg').src = r.sketch; $('ph').style.display = 'none';
+    $('actions').style.display = 'flex';
+    $('meta').textContent = r.style + ' · 用时 ' + r.secs + ' 秒';
+    setCompare(false);
+    const h = $('history'); h.innerHTML = '';
+    if (results.length > 1) results.forEach((x, j) => {
+      const im = document.createElement('img'); im.src = x.img; im.className = j === i ? 'on' : ''; im.onclick = () => show(j); h.appendChild(im);
+    });
+  }
+  $('go').onclick = generate;
+  $('aAgain').onclick = generate;
+
+  // 对比：拖动分割线
+  let comparing = false, cmpX = 0.5;
+  function setCompare(on) {
+    comparing = on; $('stage').classList.toggle('comparing', on);
+    $('origImg').style.display = on ? '' : 'none';
+    $('aCmp').classList.toggle('on', on); applyCmp();
+  }
+  function applyCmp() {
+    $('origImg').style.clipPath = `inset(0 ${(1 - cmpX) * 100}% 0 0)`;
+    $('cmpBar').style.left = `calc(${cmpX * 100}% - 1px)`;
+  }
+  $('aCmp').onclick = () => setCompare(!comparing);
+  const stage = $('stage');
+  const moveCmp = (e) => { if (!comparing) return; const r = stage.getBoundingClientRect(); cmpX = Math.min(1, Math.max(0, (e.clientX - r.left) / r.width)); applyCmp(); };
+  stage.addEventListener('pointerdown', (e) => { if (!comparing) return; stage.setPointerCapture(e.pointerId); moveCmp(e); });
+  stage.addEventListener('pointermove', (e) => { if (e.buttons || e.pointerType === 'touch') moveCmp(e); });
+  stage.style.touchAction = 'pan-y';
+
+  // 放大
+  $('aZoom').onclick = () => { if (current < 0) return; $('lbImg').src = results[current].img; $('lb').classList.add('show'); document.body.style.overflow = 'hidden'; };
+  $('lbImg').onclick = (e) => { e.stopPropagation(); $('lb').classList.toggle('zoom'); };
+  const closeLb = () => { $('lb').classList.remove('show', 'zoom'); document.body.style.overflow = ''; };
+  $('lbX').onclick = closeLb; $('lb').onclick = (e) => { if (e.target === $('lb')) closeLb(); };
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeLb(); });
+  $('outImg').onclick = () => { if (!comparing) $('aZoom').click(); };
+
+  // 下载
+  $('aDl').onclick = async () => {
+    if (current < 0) return;
+    const r = results[current];
+    try {
+      const blob = await (await fetch(r.img)).blob();
+      const ext = (blob.type.split('/')[1] || 'png').replace('jpeg', 'jpg');
+      const file = new File([blob], `涂鸦成画-${r.style}-${Date.now()}.${ext}`, { type: blob.type });
+      if (/iPhone|iPad|Android/i.test(navigator.userAgent) && navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({ files: [file], title: '涂鸦成画' }); return;
+      }
+      const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = file.name;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+    } catch (e) {
+      if (e && e.name === 'AbortError') return;
+      $('aZoom').click(); toast('长按图片即可保存到相册');
+    }
+  };
+
+  function toast(t) { const el = $('toast'); el.textContent = t; el.classList.add('show'); clearTimeout(el._t); el._t = setTimeout(() => el.classList.remove('show'), 2400); }
+
+  // 是否需要口令
+  $('code').value = localStorage.getItem('doodle_code') || '';
+  fetch('/api/generate').then((r) => r.json()).then((j) => { if (j.needCode) $('codeField').style.display = ''; }).catch(() => {});
+
+  paintBg(); refreshUi();
+})();
+</script>
+</body>
+</html>
